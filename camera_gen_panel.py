@@ -406,8 +406,8 @@ class CameraGenPanel(lf.ui.Panel):
     def _preset_close_orbit(self, handle, event, args):
         self._anim_type = "circular"
         self._radius    = 3.0
-        self._center_x = 0.0; self._center_y = -3.0; self._center_z = 0.0
-        self._target_x = 0.0; self._target_y =  0.0; self._target_z = 0.0
+        self._center_x = 0.0; self._center_y = 1.5; self._center_z = 0.0
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0.0
         self._frames = 120; self._fps = 24; self._direction = "clockwise"
         self._use_auto_target = False
         self._auto_output("close_orbit_camera.json")
@@ -416,8 +416,8 @@ class CameraGenPanel(lf.ui.Panel):
     def _preset_medium_orbit(self, handle, event, args):
         self._anim_type = "circular"
         self._radius    = 10.0
-        self._center_x = 0.0; self._center_y = -10.0; self._center_z = 0.0
-        self._target_x = 0.0; self._target_y =   0.0; self._target_z = 0.0
+        self._center_x = 0.0; self._center_y = 5.0; self._center_z = 0.0
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0.0
         self._frames = 180; self._fps = 24; self._direction = "clockwise"
         self._use_auto_target = False
         self._auto_output("medium_orbit_camera.json")
@@ -426,8 +426,8 @@ class CameraGenPanel(lf.ui.Panel):
     def _preset_wide_orbit(self, handle, event, args):
         self._anim_type = "circular"
         self._radius    = 20.0
-        self._center_x = 0.0; self._center_y = -20.0; self._center_z = 0.0
-        self._target_x = 0.0; self._target_y =   0.0; self._target_z = 0.0
+        self._center_x = 0.0; self._center_y = 10.0; self._center_z = 0.0
+        self._target_x = 0.0; self._target_y =  0.0; self._target_z = 0.0
         self._frames = 240; self._fps = 24; self._direction = "clockwise"
         self._use_auto_target = False
         self._auto_output("wide_orbit_camera.json")
@@ -437,7 +437,7 @@ class CameraGenPanel(lf.ui.Panel):
         self._anim_type     = "spiral"
         self._spiral_loops  = 2.0
         self._start_radius  = 5.0;  self._end_radius = 5.0
-        self._start_height  = 0.0;  self._end_height = -10.0
+        self._start_height  = 0.0;  self._end_height = 10.0
         self._center_x = 0.0; self._center_y = 0.0; self._center_z = 5.0
         self._target_x = 0.0; self._target_y = 0.0; self._target_z = 5.0
         self._frames = 240; self._fps = 24; self._direction = "counterclockwise"

@@ -38,6 +38,8 @@ def _look_at(eye: tuple, target: tuple) -> list[float]:
     up    = _cross(right, fwd)
 
     # Column-major: [right | up | -fwd | translation]
+
+
     return [
          right[0],  right[1],  right[2], 0.0,
             up[0],     up[1],     up[2], 0.0,
