@@ -332,26 +332,21 @@ class CameraGenPanel(lf.ui.Panel):
             self._set_status("File not found — generate it first.", error=True)
             return
         try:
-            from training_render.core.state import State
-            from training_render.core.lfs_path_player import LFSPathPlayer
-            State.track3_path    = self._output_path
-            State._track3_player = LFSPathPlayer(self._output_path)
-            State.track3_loaded  = True
-            State.active_track   = "track3"
+            lf.ui.load_camera_path(self._output_path)
             lf.log.info(f"CameraGen: loaded path into sequencer from {self._output_path!r}")
-            self._set_status("✓ Loaded into path sequencer (Track 3).")
+            self._set_status("✓ Loaded into path sequencer.")
         except Exception as e:
             lf.log.error(f"CameraGen: send to sequencer failed – {e}")
             self._set_status(f"Load failed: {e}", error=True)
-
-    def _on_browse(self, handle, event, args):
-        initial = (Path(self._output_path).parent.as_posix()
-                   if self._output_path else os.path.expanduser("~"))
-        def _browse():
-            picked = _browse_json_save("Save camera JSON", initial)
-            if picked:
-                self._pending_output_path = picked
-        threading.Thread(target=_browse, daemon=True).start()
+    
+        def _on_browse(self, handle, event, args):
+            initial = (Path(self._output_path).parent.as_posix()
+                       if self._output_path else os.path.expanduser("~"))
+            def _browse():
+                picked = _browse_json_save("Save camera JSON", initial)
+                if picked:
+                    self._pending_output_path = picked
+            threading.Thread(target=_browse, daemon=True).start()
 
     def _on_generate(self, handle, event, args):
         if self._generating:
