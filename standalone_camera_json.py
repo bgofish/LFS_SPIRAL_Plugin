@@ -200,10 +200,11 @@ class StandaloneCameraGenerator:
                 return round(v, precision)
 
             keyframes.append({
-                "time": time_s,
-                "position": [r(translation[0]), r(translation[1]), r(translation[2])],
-                "rotation": [r(rotation[0]),    r(rotation[1]),    r(rotation[2]),    r(rotation[3])],
-                "fov":      r(fov),
+                "easing":          0,
+                "focal_length_mm": r(focal_length),
+                "time":            time_s,
+                "position":        [r(translation[0]), r(translation[1]), r(translation[2])],
+                "rotation":        [r(rotation[0]),    r(rotation[1]),    r(rotation[2]),    r(rotation[3])],
             })
 
         return {
