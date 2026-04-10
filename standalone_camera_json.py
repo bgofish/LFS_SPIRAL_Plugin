@@ -34,8 +34,8 @@ def _look_at(eye: tuple, target: tuple) -> list[float]:
     if abs(_dot(fwd, up_hint)) > 0.999:
         up_hint = (0.0, 0.0, 1.0)
 
-    right = _normalize(_cross(fwd, up_hint))
-    up    = _cross(right, fwd)
+    right = _normalize(_cross(up_hint, fwd))
+    up    = _cross(fwd, right)
 
     # Column-major: [right | up | -fwd | translation]
 
