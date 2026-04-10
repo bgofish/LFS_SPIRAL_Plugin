@@ -210,8 +210,8 @@ class StandaloneCameraGenerator:
                 eye         = (eye[0], eye[2], -eye[1])
                 look_target = (look_target[0], look_target[2], -look_target[1])
 
-            mat      = _look_at(eye, look_target)
-            rotation, _ = _mat4_to_rotation_translation(mat)
+            #mat      = _look_at(eye, look_target)
+            #rotation, _ = _mat4_to_rotation_translation(mat)
             translation  = list(eye)   # world-space position passed through directly
 
             # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
