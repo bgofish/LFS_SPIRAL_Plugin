@@ -102,7 +102,6 @@ class CameraGenPanel(lf.ui.Panel):
         self._precision       = 6
         self._keyframe_step   = 1
         self._convert_coords  = False
-        self._nightly_build   = False
 
         # Output
         self._output_path = ""
@@ -226,9 +225,6 @@ class CameraGenPanel(lf.ui.Panel):
         model.bind("convert_coords",
                    lambda: self._convert_coords,
                    lambda v: self._set_bool("_convert_coords", v))
-        model.bind("nightly_build",
-                   lambda: self._nightly_build,
-                   lambda v: self._set_bool("_nightly_build", v))
 
         # Derived display
         model.bind_func("fov_str",      self._get_fov_str)
@@ -389,7 +385,6 @@ class CameraGenPanel(lf.ui.Panel):
                 focal_length    = self._focal_length,
                 sensor_size     = self._sensor_size,
                 convert_coords  = self._convert_coords,
-                nightly_build   = self._nightly_build,
                 precision       = self._precision,
                 keyframe_step   = self._keyframe_step,
                 spiral_follow_y = self._spiral_follow_y,
@@ -505,7 +500,6 @@ class CameraGenPanel(lf.ui.Panel):
                 ("_precision",       "precision",       int),
                 ("_keyframe_step",   "keyframe_step",   int),
                 ("_convert_coords",  "convert_coords",  bool),
-                ("_nightly_build",   "nightly_build",   bool),
                 ("_output_path",     "output_path",     str),
             ]:
                 if key in d:
@@ -552,7 +546,6 @@ class CameraGenPanel(lf.ui.Panel):
                 "precision":       self._precision,
                 "keyframe_step":   self._keyframe_step,
                 "convert_coords":  self._convert_coords,
-                "nightly_build":   self._nightly_build,
                 "output_path":     self._output_path,
             }
             path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -578,7 +571,7 @@ class CameraGenPanel(lf.ui.Panel):
             "use_auto_target", "is_manual_target", "is_auto_target",
             "target_distance_str", "target_x_str", "target_y_str", "target_z_str",
             "frames_str", "fps_str", "focal_length_str", "sensor_size_str",
-            "precision_str", "keyframe_step_str", "convert_coords", "nightly_build",
+            "precision_str", "keyframe_step_str", "convert_coords",
             "fov_str", "duration_str",
             "output_path",
             "status_text", "status_class",
