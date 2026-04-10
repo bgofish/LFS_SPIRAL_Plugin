@@ -195,6 +195,13 @@ class StandaloneCameraGenerator:
             rotation, _ = _mat4_to_rotation_translation(mat)
             translation  = list(eye)   # world-space position passed through directly
 
+            # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
+            # Fix: negate Y on position, and negate qx+qz on rotation (reflects across
+            # the XZ plane, correcting both the Y-axis flip and the forward direction).
+            translation[1] = -translation[1]
+            rotation[0]    = -rotation[0]   # qx
+            rotation[2]    = -rotation[2]   # qz
+
             time_s = round(i / fps, precision)
 
             def r(v):
