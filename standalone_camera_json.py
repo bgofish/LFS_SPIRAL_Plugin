@@ -37,13 +37,12 @@ def _look_at(eye: tuple, target: tuple) -> list[float]:
     right = _normalize(_cross(up_hint, fwd))
     up    = _cross(fwd, right)
 
-    # Column-major: [right | up | -fwd | translation]
-
-
+    # Column-major: [right | up | fwd | translation]
+    # Lichtfeld camera convention: +Z forward, so col2 = +fwd (not -fwd)
     return [
          right[0],  right[1],  right[2], 0.0,
             up[0],     up[1],     up[2], 0.0,
-        -fwd[0],   -fwd[1],   -fwd[2],  0.0,
+          fwd[0],    fwd[1],    fwd[2],  0.0,
             ex,        ey,        ez,    1.0,
     ]
 
