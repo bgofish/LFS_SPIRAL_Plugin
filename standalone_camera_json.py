@@ -148,7 +148,17 @@ class StandaloneCameraGenerator:
         dir_sign = -1.0 if direction == "clockwise" else 1.0
 
         keyframes = []
-        frame_indices = range(0, frames, max(1, keyframe_step))
+        base_indices = list(range(0, frames, max(1, keyframe_step)))
+
+        # When keyframe_step > 1, inject index 1 (start+1) and frames-2 (end-1)
+        extra = set()
+        if keyframe_step > 1:
+            if 1 not in base_indices and 1 < frames:
+                extra.add(1)
+            if (frames - 2) not in base_indices and (frames - 2) >= 0:
+                extra.add(frames - 2)
+
+        frame_indices = sorted(set(base_indices) | extra)
 
         for i in frame_indices:
             t_norm = i / max(frames - 1, 1)   # 0 … 1
