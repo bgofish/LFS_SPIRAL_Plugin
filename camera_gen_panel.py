@@ -240,9 +240,10 @@ class CameraGenPanel(lf.ui.Panel):
         model.bind_func("status_class", lambda: self._status_class)
 
         # Events
-        model.bind_event("do_generate",           self._on_generate)
-        model.bind_event("do_browse",             self._on_browse)
-        model.bind_event("preset_close_orbit",    self._preset_close_orbit)
+        model.bind_event("do_generate",              self._on_generate)
+        model.bind_event("do_browse",                self._on_browse)
+        model.bind_event("do_send_to_sequencer",     self._on_send_to_sequencer)
+        model.bind_event("preset_close_orbit",       self._preset_close_orbit)
         model.bind_event("preset_medium_orbit",   self._preset_medium_orbit)
         model.bind_event("preset_wide_orbit",     self._preset_wide_orbit)
         model.bind_event("preset_rising_spiral",  self._preset_rising_spiral)
@@ -323,7 +324,27 @@ class CameraGenPanel(lf.ui.Panel):
 
     # ── Events ────────────────────────────────────────────────────────────────
 
-    def _on_browse(self, handle, event, args):
+    def _on_send_to_sequencer(self, handle, event, args):
+        if not self._output_path.strip():
+            self._set_status("Generate and save a JSON file first.", error=True)
+            return
+        if not Path(self._output_path).exists():
+            self._set_status("File not found — generate it first.", error=True)
+            return
+        try:
+            from training_render.core.state import State
+            from training_render.core.lfs_path_player import LFSPathPlayer
+            State.track3_path   = self._output_path
+            State._track3_player = LFSPathPlayer(self._output_path)
+            State.track3_loaded  = True
+            State.active_track   = "track3"
+            lf.log.info(f"CameraGen: loaded path into sequencer from {self._output_path!r}")
+            self._set_status("✓ Loaded into path sequencer (Track 3).")
+        except Exception as e:
+            lf.log.error(f"CameraGen: send to sequencer failed – {e}")
+            self._set_status(f"Load failed: {e}", error=True)
+
+
         initial = (Path(self._output_path).parent.as_posix()
                    if self._output_path else os.path.expanduser("~"))
         def _browse():
