@@ -1,0 +1,191 @@
+<rml>
+<body data-model="camera_gen_panel">
+<div id="content-wrap"><div id="content">
+
+  <!-- ── Animation Type ─────────────────────────────────────────── -->
+  <span class="section-label">Animation Type</span>
+  <div class="btn-row">
+    <input type="checkbox" data-value="anim_circular" data-attrif-checked="anim_circular" />
+    <span>Circular</span>
+    <input type="checkbox" data-value="anim_spiral"   data-attrif-checked="anim_spiral" />
+    <span>Spiral</span>
+  </div>
+
+  <!-- Direction -->
+  <div class="btn-row">
+    <input type="checkbox" data-value="dir_clockwise" data-attrif-checked="dir_clockwise" />
+    <span>Clockwise</span>
+    <input type="checkbox" data-value="dir_ccw" data-attrif-checked="dir_ccw" />
+    <span>Counter-clockwise</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Circular Parameters ────────────────────────────────────── -->
+  <div data-if="is_circular">
+    <span class="section-label" style="color: #4A90D9;">Circular Parameters</span>
+    <div class="setting-row">
+      <span class="prop-label">Radius (m)</span>
+      <input type="text" class="number-input" data-value="radius_str"
+             title="Orbit radius in metres." />
+    </div>
+  </div>
+
+  <!-- ── Spiral Parameters ──────────────────────────────────────── -->
+  <div data-if="is_spiral">
+    <span class="section-label" style="color: #4A90D9;">Spiral Parameters</span>
+
+    <div class="setting-row">
+      <span class="prop-label">Loops</span>
+      <input type="text" class="number-input" data-value="spiral_loops_str"
+             title="Number of full rotations in the spiral." />
+    </div>
+    <div class="setting-row">
+      <span class="prop-label">Start radius (m)</span>
+      <input type="text" class="number-input" data-value="start_radius_str" />
+      <span class="prop-label" style="margin-left:8px;">End radius (m)</span>
+      <input type="text" class="number-input" data-value="end_radius_str" />
+    </div>
+    <div class="setting-row">
+      <span class="prop-label">Start height (m)</span>
+      <input type="text" class="number-input" data-value="start_height_str" />
+      <span class="prop-label" style="margin-left:8px;">End height (m)</span>
+      <input type="text" class="number-input" data-value="end_height_str" />
+    </div>
+    <div class="setting-row">
+      <input type="checkbox" data-value="spiral_follow_y" data-attrif-checked="spiral_follow_y" />
+      <span title="Target Y tracks the camera's current height along the spiral.">Target follows camera Y</span>
+      <span class="prop-label" style="margin-left:12px;">Y offset (m)</span>
+      <input type="text" class="number-input" data-value="spiral_y_offset_str"
+             title="Vertical offset applied to the auto-following target." />
+    </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Center ─────────────────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Center Coordinates</span>
+  <div class="setting-row">
+    <span class="prop-label">X</span>
+    <input type="text" class="number-input" data-value="center_x_str" />
+    <span class="prop-label" style="margin-left:8px;">Y</span>
+    <input type="text" class="number-input" data-value="center_y_str" />
+    <span class="prop-label" style="margin-left:8px;">Z</span>
+    <input type="text" class="number-input" data-value="center_z_str" />
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Target ─────────────────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Look-at Target</span>
+  <div class="setting-row">
+    <input type="checkbox" data-value="use_auto_target" data-attrif-checked="use_auto_target" />
+    <span title="Auto-calculate target at a fixed distance in front of the camera instead of using a fixed world-space point.">Auto target</span>
+    <span class="prop-label" style="margin-left:12px;">Distance (m)</span>
+    <input type="text" class="number-input" data-value="target_distance_str"
+           title="Distance ahead of the camera to place the auto-calculated look-at target." />
+  </div>
+
+  <div data-if="is_manual_target">
+    <div class="setting-row">
+      <span class="prop-label">X</span>
+      <input type="text" class="number-input" data-value="target_x_str" />
+      <span class="prop-label" style="margin-left:8px;">Y</span>
+      <input type="text" class="number-input" data-value="target_y_str" />
+      <span class="prop-label" style="margin-left:8px;">Z</span>
+      <input type="text" class="number-input" data-value="target_z_str" />
+    </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Animation Settings ─────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Animation Settings</span>
+  <div class="setting-row">
+    <span class="prop-label">Frames</span>
+    <input type="text" class="number-input" data-value="frames_str"
+           title="Total number of animation frames to generate." />
+    <span class="prop-label" style="margin-left:8px;">FPS</span>
+    <input type="text" class="number-input" data-value="fps_str"
+           title="Frames per second — used to calculate timestamps." />
+  </div>
+  <div class="setting-row">
+    <span class="prop-label">Focal length (mm)</span>
+    <input type="text" class="number-input" data-value="focal_length_str"
+           title="Camera focal length in millimetres." />
+    <span class="prop-label" style="margin-left:8px;">Sensor (mm)</span>
+    <input type="text" class="number-input" data-value="sensor_size_str"
+           title="Sensor width in mm. Common values: 24 (APS-C), 32 (Standard), 36 (Full-frame)." />
+  </div>
+  <div class="setting-row">
+    <span class="prop-label">FOV</span>
+    <span class="text-muted">{{fov_str}}</span>
+    <span class="prop-label" style="margin-left:16px;">Duration</span>
+    <span class="text-muted">{{duration_str}}</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Export Options ─────────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Export Options</span>
+  <div class="setting-row">
+    <span class="prop-label">Decimal precision</span>
+    <input type="text" class="number-input" data-value="precision_str"
+           title="Number of decimal places written to the JSON file." />
+    <span class="prop-label" style="margin-left:8px;">Keyframe every N frames</span>
+    <input type="text" class="number-input" data-value="keyframe_step_str"
+           title="Write one keyframe every N frames. 1 = every frame." />
+  </div>
+  <div class="setting-row">
+    <input type="checkbox" data-value="convert_coords" data-attrif-checked="convert_coords" />
+    <span title="Convert Z-up coordinates to Y-up (swap Y and Z, negate new Z). Use when your scene uses Z-up convention.">Convert Z-up → Y-up</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Output Path ────────────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Output</span>
+  <div class="setting-row">
+    <input type="text" class="number-input" style="flex:1;" data-value="output_path"
+           title="Full path to the output .json file." />
+    <button class="btn" data-event-click="do_browse"
+            title="Open a file-save dialog to choose the output path.">Browse</button>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Presets ────────────────────────────────────────────────── -->
+  <span class="section-label" style="color: #4A90D9;">Presets</span>
+  <span class="text-muted">Circular:</span>
+  <div class="btn-row">
+    <button class="btn" data-event-click="preset_close_orbit"
+            title="3 m radius, 120 frames, clockwise.">Close Orbit</button>
+    <button class="btn" data-event-click="preset_medium_orbit"
+            title="10 m radius, 180 frames, clockwise.">Medium Orbit</button>
+    <button class="btn" data-event-click="preset_wide_orbit"
+            title="20 m radius, 240 frames, clockwise.">Wide Orbit</button>
+  </div>
+  <span class="text-muted">Spiral:</span>
+  <div class="btn-row">
+    <button class="btn" data-event-click="preset_rising_spiral"
+            title="5 m radius, 2 loops, rising 10 m, 240 frames.">Rising Spiral</button>
+    <button class="btn" data-event-click="preset_desc_spiral"
+            title="20→5 m radius, 3 loops, descending 15 m, 300 frames.">Descending Spiral</button>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Generate ───────────────────────────────────────────────── -->
+  <div class="btn-row">
+    <button class="btn btn--full" data-event-click="do_generate"
+            title="Calculate all camera positions and save the JSON file to the output path.">Generate JSON File</button>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- ── Status ─────────────────────────────────────────────────── -->
+  <span class="{{status_class}}">{{status_text}}</span>
+
+</div></div>
+</body>
+</rml>
