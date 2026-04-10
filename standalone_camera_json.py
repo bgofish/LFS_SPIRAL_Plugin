@@ -139,6 +139,7 @@ class StandaloneCameraGenerator:
         keyframe_step:   int   = 1,
         spiral_follow_y: bool  = False,
         spiral_y_offset: float = 0.0,
+        nightly_build:   bool  = False,
     ) -> dict:
         cx, cy, cz = center
         fov = focal_length_to_fov(focal_length, sensor_size)
@@ -195,12 +196,12 @@ class StandaloneCameraGenerator:
             rotation, _ = _mat4_to_rotation_translation(mat)
             translation  = list(eye)   # world-space position passed through directly
 
-            # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
-            # Fix: negate Y on position, and negate qx+qz on rotation (reflects across
-            # the XZ plane, correcting both the Y-axis flip and the forward direction).
-            translation[1] = -translation[1]
-            rotation[0]    = -rotation[0]   # qx
-            rotation[2]    = -rotation[2]   # qz
+            # Nightly build changed to Y-up (stable 0.5.1 was Y-down) and flipped
+            # camera forward direction. Negate Y position and qx/qz to compensate.
+            if nightly_build:
+                translation[1] = -translation[1]
+                rotation[0]    = -rotation[0]   # qx
+                rotation[2]    = -rotation[2]   # qz
 
             time_s = round(i / fps, precision)
 

@@ -2,7 +2,16 @@
 <body data-model="camera_gen_panel">
 <div id="content-wrap"><div id="content">
 
-  <!-- ── Animation Type ─────────────────────────────────────────── -->
+  <!-- ── Lichtfeld Version ──────────────────────────────────────── -->
+  <span class="section-label" style="color: #E8A020;">Lichtfeld Version</span>
+  <div class="btn-row">
+    <input type="checkbox" data-value="nightly_build" data-attrif-checked="nightly_build" />
+    <span title="Enable for Lichtfeld Nightly builds (Y-up coordinate system). Leave off for stable 0.5.1 (Y-down).">Nightly Build  (disable for stable 0.5.1)</span>
+  </div>
+
+  <div class="separator"></div>
+
+    <!-- ── Animation Type ─────────────────────────────────────────── -->
   <span class="section-label">Animation Type</span>
   <div class="btn-row">
     <input type="checkbox" data-value="anim_circular" data-attrif-checked="anim_circular" />
