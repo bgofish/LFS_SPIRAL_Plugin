@@ -394,8 +394,8 @@ class CameraGenPanel(lf.ui.Panel):
         self._spiral_loops  = 2.0
         self._start_radius  = 5.0;  self._end_radius = 5.0
         self._start_height  = 0.0;  self._end_height = -10.0
-        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 5.0
-        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 5.0
+        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 0.0
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0.0
         self._frames = 240; self._fps = 24; self._direction = "counterclockwise"
         self._spiral_follow_y = False
         self._use_auto_target = False
@@ -407,8 +407,8 @@ class CameraGenPanel(lf.ui.Panel):
         self._spiral_loops  = 3.0
         self._start_radius  = 20.0; self._end_radius = 5.0
         self._start_height  = 15.0; self._end_height = 0.0
-        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 7.5
-        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 7.5
+        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 0
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0
         self._frames = 300; self._fps = 24; self._direction = "clockwise"
         self._spiral_follow_y = False
         self._use_auto_target = False
