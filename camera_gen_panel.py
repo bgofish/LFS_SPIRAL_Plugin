@@ -5,12 +5,47 @@
 
 from __future__ import annotations
 import json
+import os
+import subprocess
+import sys
 import threading
 from pathlib import Path
 
 import lichtfeld as lf
 
 from standalone_camera_json import StandaloneCameraGenerator, focal_length_to_fov
+
+
+# ── File dialog helper ────────────────────────────────────────────────────────
+
+def _browse_json_save(title: str, default_path: str) -> str | None:
+    """Open a Save-As dialog filtered to .json via PowerShell SaveFileDialog."""
+    try:
+        if sys.platform == "win32":
+            initial_dir = default_path if os.path.isdir(default_path) else os.path.expanduser("~")
+            initial_dir = initial_dir.replace(chr(92), chr(92) + chr(92))
+            ps_script = f"""
+                Add-Type -AssemblyName System.Windows.Forms
+                $dialog = New-Object System.Windows.Forms.SaveFileDialog
+                $dialog.Title = "{title}"
+                $dialog.InitialDirectory = "{initial_dir}"
+                $dialog.Filter = "Camera JSON (*.json)|*.json|All Files (*.*)|*.*"
+                $dialog.FilterIndex = 1
+                $dialog.DefaultExt = "json"
+                if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
+                    Write-Output $dialog.FileName
+                }}
+            """
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", ps_script],
+                capture_output=True, text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            path = result.stdout.strip()
+            return path if path else None
+    except Exception as exc:
+        lf.log.error(f"CameraGen: file dialog error – {exc}")
+    return None
 
 
 # ── Panel ─────────────────────────────────────────────────────────────────────
@@ -72,9 +107,10 @@ class CameraGenPanel(lf.ui.Panel):
         self._output_path = ""
 
         # Status
-        self._status       = ""
-        self._status_class = "text-default"
-        self._generating   = False
+        self._status              = ""
+        self._status_class        = "text-default"
+        self._generating          = False
+        self._pending_output_path = None   # written by browse thread, applied in on_update
 
         self._load_settings()
 
@@ -215,7 +251,11 @@ class CameraGenPanel(lf.ui.Panel):
         self._handle = model.get_handle()
 
     def on_update(self, doc):
-        pass  # No scene polling needed for this panel
+        if self._pending_output_path is not None:
+            self._output_path         = self._pending_output_path
+            self._pending_output_path = None
+            self._save_settings()
+            self._dirty("output_path")
 
     def on_unmount(self, doc):
         doc.remove_data_model("camera_gen_panel")
@@ -284,25 +324,13 @@ class CameraGenPanel(lf.ui.Panel):
     # ── Events ────────────────────────────────────────────────────────────────
 
     def _on_browse(self, handle, event, args):
-        """Open a save-file dialog and write the chosen path into output_path."""
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            path = filedialog.asksaveasfilename(
-                title="Save camera JSON",
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            )
-            root.destroy()
-            if path:
-                self._output_path = path
-                self._save_settings()
-                self._dirty("output_path")
-        except Exception as e:
-            self._set_status(f"Browse error: {e}", error=True)
+        initial = (Path(self._output_path).parent.as_posix()
+                   if self._output_path else os.path.expanduser("~"))
+        def _browse():
+            picked = _browse_json_save("Save camera JSON", initial)
+            if picked:
+                self._pending_output_path = picked
+        threading.Thread(target=_browse, daemon=True).start()
 
     def _on_generate(self, handle, event, args):
         if self._generating:
@@ -394,8 +422,8 @@ class CameraGenPanel(lf.ui.Panel):
         self._spiral_loops  = 2.0
         self._start_radius  = 5.0;  self._end_radius = 5.0
         self._start_height  = 0.0;  self._end_height = -10.0
-        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 0.0
-        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0.0
+        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 5.0
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 5.0
         self._frames = 240; self._fps = 24; self._direction = "counterclockwise"
         self._spiral_follow_y = False
         self._use_auto_target = False
@@ -407,8 +435,8 @@ class CameraGenPanel(lf.ui.Panel):
         self._spiral_loops  = 3.0
         self._start_radius  = 20.0; self._end_radius = 5.0
         self._start_height  = 15.0; self._end_height = 0.0
-        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 0
-        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 0
+        self._center_x = 0.0; self._center_y = 0.0; self._center_z = 7.5
+        self._target_x = 0.0; self._target_y = 0.0; self._target_z = 7.5
         self._frames = 300; self._fps = 24; self._direction = "clockwise"
         self._spiral_follow_y = False
         self._use_auto_target = False
