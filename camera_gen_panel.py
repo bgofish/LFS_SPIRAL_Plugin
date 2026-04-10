@@ -334,7 +334,7 @@ class CameraGenPanel(lf.ui.Panel):
         try:
             from training_render.core.state import State
             from training_render.core.lfs_path_player import LFSPathPlayer
-            State.track3_path   = self._output_path
+            State.track3_path    = self._output_path
             State._track3_player = LFSPathPlayer(self._output_path)
             State.track3_loaded  = True
             State.active_track   = "track3"
@@ -344,7 +344,7 @@ class CameraGenPanel(lf.ui.Panel):
             lf.log.error(f"CameraGen: send to sequencer failed – {e}")
             self._set_status(f"Load failed: {e}", error=True)
 
-
+    def _on_browse(self, handle, event, args):
         initial = (Path(self._output_path).parent.as_posix()
                    if self._output_path else os.path.expanduser("~"))
         def _browse():
