@@ -197,12 +197,16 @@ class StandaloneCameraGenerator:
 
             # Ensure quaternion continuity — if this quat is on the opposite hemisphere
             # from the previous one, negate it so interpolation takes the short path
+            # rotation from _look_at_quat is [qx,qy,qz,qw]
+            # Lichtfeld expects [qw, qx, qy, qz] (Hamiltonian convention)
+            qx, qy, qz, qw = rotation[0], rotation[1], rotation[2], rotation[3]
+
+            # Ensure quaternion continuity (compare in w,x,y,z order)
             if keyframes:
-                prev_r = keyframes[-1]["rotation"]
-                dot = (rotation[0]*prev_r[0] + rotation[1]*prev_r[1] +
-                       rotation[2]*prev_r[2] + rotation[3]*prev_r[3])
+                prev_r = keyframes[-1]["rotation"]  # [pw, px, py, pz]
+                dot = (qw*prev_r[0] + qx*prev_r[1] + qy*prev_r[2] + qz*prev_r[3])
                 if dot < 0:
-                    rotation = [-rotation[0], -rotation[1], -rotation[2], -rotation[3]]
+                    qw, qx, qy, qz = -qw, -qx, -qy, -qz
 
             time_s = round(i / fps, precision)
 
@@ -214,7 +218,7 @@ class StandaloneCameraGenerator:
                 "focal_length_mm": r(focal_length),
                 "time":            time_s,
                 "position":        [r(translation[0]), r(translation[1]), r(translation[2])],
-                "rotation":        [r(rotation[0]),    r(rotation[1]),    r(rotation[2]),    r(rotation[3])],
+                "rotation":        [r(qw), r(qx), r(qy), r(qz)],
             })
 
         return {
