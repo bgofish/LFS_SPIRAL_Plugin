@@ -195,6 +195,13 @@ class StandaloneCameraGenerator:
 
             qw, qx, qy, qz = _look_at_quaternion(position, look_target)
 
+            # Lichtfeld +Y_up convention: negate Y on position and reflect
+            # the rotation across the XZ plane (negate qx and qz) so the
+            # camera still points at the correct target with correct up.
+            position[1] = -position[1]
+            qx = -qx
+            qz = -qz
+
             time_s = round(i / fps, precision)
 
             def r(v):
