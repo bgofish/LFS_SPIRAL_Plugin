@@ -199,22 +199,22 @@ class StandaloneCameraGenerator:
 
             if convert_coords:
                 # Z-up → Y-up: swap Y and Z, negate new Z
-                eye         = (eye[0],          eye[2],          -eye[1])
-                look_target = (look_target[0],  look_target[2],  -look_target[1])
-            else:
-                # Nightly build uses Y-down → flip Y on both eye and target so the
-                # look-at matrix is built entirely in Lichtfeld's coordinate space.
-                eye         = (eye[0],         -eye[1],          eye[2])
-                look_target = (look_target[0], -look_target[1],  look_target[2])
+                eye         = (eye[0],         eye[2],         -eye[1])
+                look_target = (look_target[0], look_target[2], -look_target[1])
 
             mat         = _look_at(eye, look_target)
             rotation, _ = _mat4_to_rotation_translation(mat)
-            translation = list(eye)   # world-space position in Lichtfeld space
 
-            # Forward direction is flipped relative to the look-at convention.
-            # Negate qx+qz to reflect across the XZ plane and correct it.
-            rotation[0] = -rotation[0]   # qx
-            rotation[2] = -rotation[2]   # qz
+            # _look_at uses OpenGL convention: camera looks down -Z.
+            # Lichtfeld uses +Z as forward.  Multiply by the 180-degree-Y quaternion
+            # (0, 1, 0, 0) to flip the forward axis without disturbing the up vector,
+            # so no roll is introduced.
+            # q * (0,1,0,0) in [x,y,z,w] = [-qz, qw, qx, -qy]
+            qx, qy, qz, qw = rotation
+            rotation = [-qz, qw, qx, -qy]
+
+            # Lichtfeld nightly negates the Y axis, so flip Y on position only.
+            translation = [eye[0], -eye[1], eye[2]]
 
             time_s = round(i / fps, precision)
 
