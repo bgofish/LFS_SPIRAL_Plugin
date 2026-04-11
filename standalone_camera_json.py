@@ -18,96 +18,83 @@ def focal_length_to_fov(focal_length_mm: float, sensor_width_mm: float) -> float
     return math.degrees(2.0 * math.atan(sensor_width_mm / (2.0 * focal_length_mm)))
 
 
-# ── Look-at matrix ────────────────────────────────────────────────────────────
-
-def _look_at(eye: tuple, target: tuple) -> list[float]:
-    """
-    Return a 4x4 column-major look-at matrix (list of 16 floats) that places
-    a camera at *eye* pointing toward *target*.  Y-up world convention.
-    """
-    ex, ey, ez = eye
-    tx, ty, tz = target
-
-    fwd = _normalize((tx - ex, ty - ey, tz - ez))
-    # Degenerate guard: if forward is nearly straight up, tilt the up hint
-    up_hint = (0.0, 1.0, 0.0)
-    if abs(_dot(fwd, up_hint)) > 0.999:
-        up_hint = (0.0, 0.0, 1.0)
-
-    right = _normalize(_cross(fwd, up_hint))
-    # Re-derive up strictly perpendicular to both fwd and right, eliminating roll
-    up = _normalize(_cross(right, fwd))
-
-    # Column-major: [right | up | -fwd | translation]
-    return [
-         right[0],  right[1],  right[2], 0.0,
-            up[0],     up[1],     up[2], 0.0,
-        -fwd[0],   -fwd[1],   -fwd[2],  0.0,
-            ex,        ey,        ez,    1.0,
-    ]
-
+# ── Look-at quaternion ────────────────────────────────────────────────────────
 
 def _normalize(v: tuple) -> tuple:
     x, y, z = v
     n = math.sqrt(x*x + y*y + z*z)
-    if n < 1e-12:
+    if n < 1e-10:
         return (0.0, 0.0, 1.0)
     return (x/n, y/n, z/n)
 
 
-def _cross(a: tuple, b: tuple) -> tuple:
-    ax, ay, az = a
-    bx, by, bz = b
-    return (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx)
-
-
-def _dot(a: tuple, b: tuple) -> float:
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
-
-
-def _mat4_to_rotation_translation(m: list[float]) -> tuple[list[float], list[float]]:
+def _look_at_quaternion(position: tuple, target: tuple) -> list[float]:
     """
-    Decompose a column-major 4×4 matrix into
-    rotation (as [qx, qy, qz, qw]) and translation [tx, ty, tz].
-    """
-    # Extract rotation 3×3 (column-major: m[0..2] = col0, m[4..6] = col1, m[8..10] = col2)
-    r00, r10, r20 = m[0], m[1], m[2]
-    r01, r11, r21 = m[4], m[5], m[6]
-    r02, r12, r22 = m[8], m[9], m[10]
-    tx, ty, tz    = m[12], m[13], m[14]
+    Return a quaternion [qw, qx, qy, qz] that rotates the camera to look
+    from *position* toward *target*.
 
-    trace = r00 + r11 + r22
+    Convention: Y-up world, +Z camera forward (SuperSplat / Lichtfeld).
+    """
+    fx, fy, fz = _normalize((
+        target[0] - position[0],
+        target[1] - position[1],
+        target[2] - position[2],
+    ))
+
+    # Choose world-up; fall back to -Z if forward is nearly vertical
+    if abs(fy) > 0.99:
+        world_up = (0.0, 0.0, -1.0 if fy > 0 else 1.0)
+    else:
+        world_up = (0.0, 1.0, 0.0)
+
+    # Right = world_up x forward
+    rx = world_up[1]*fz - world_up[2]*fy
+    ry = world_up[2]*fx - world_up[0]*fz
+    rz = world_up[0]*fy - world_up[1]*fx
+    right = _normalize((rx, ry, rz))
+
+    # Up = forward x right  (re-orthogonalised)
+    ux = fy*right[2] - fz*right[1]
+    uy = fz*right[0] - fx*right[2]
+    uz = fx*right[1] - fy*right[0]
+
+    # Rotation matrix columns: right | up | forward  (+Z forward convention)
+    m00, m10, m20 = right
+    m01, m11, m21 = ux, uy, uz
+    m02, m12, m22 = fx, fy, fz
+
+    # Matrix → quaternion (qw, qx, qy, qz)
+    trace = m00 + m11 + m22
     if trace > 0:
         s  = 0.5 / math.sqrt(trace + 1.0)
         qw = 0.25 / s
-        qx = (r21 - r12) * s
-        qy = (r02 - r20) * s
-        qz = (r10 - r01) * s
-    elif r00 > r11 and r00 > r22:
-        s  = 2.0 * math.sqrt(1.0 + r00 - r11 - r22)
-        qw = (r21 - r12) / s
+        qx = (m21 - m12) * s
+        qy = (m02 - m20) * s
+        qz = (m10 - m01) * s
+    elif m00 > m11 and m00 > m22:
+        s  = 2.0 * math.sqrt(1.0 + m00 - m11 - m22)
+        qw = (m21 - m12) / s
         qx = 0.25 * s
-        qy = (r01 + r10) / s
-        qz = (r02 + r20) / s
-    elif r11 > r22:
-        s  = 2.0 * math.sqrt(1.0 + r11 - r00 - r22)
-        qw = (r02 - r20) / s
-        qx = (r01 + r10) / s
+        qy = (m01 + m10) / s
+        qz = (m02 + m20) / s
+    elif m11 > m22:
+        s  = 2.0 * math.sqrt(1.0 + m11 - m00 - m22)
+        qw = (m02 - m20) / s
+        qx = (m01 + m10) / s
         qy = 0.25 * s
-        qz = (r12 + r21) / s
+        qz = (m12 + m21) / s
     else:
-        s  = 2.0 * math.sqrt(1.0 + r22 - r00 - r11)
-        qw = (r10 - r01) / s
-        qx = (r02 + r20) / s
-        qy = (r12 + r21) / s
+        s  = 2.0 * math.sqrt(1.0 + m22 - m00 - m11)
+        qw = (m10 - m01) / s
+        qx = (m02 + m20) / s
+        qy = (m12 + m21) / s
         qz = 0.25 * s
 
-    # Normalise quaternion
-    qn = math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw)
-    if qn > 1e-12:
-        qx /= qn; qy /= qn; qz /= qn; qw /= qn
+    n = math.sqrt(qw*qw + qx*qx + qy*qy + qz*qz)
+    if n > 1e-12:
+        qw /= n; qx /= n; qy /= n; qz /= n
 
-    return [qx, qy, qz, qw], [tx, ty, tz]
+    return [qw, qx, qy, qz]
 
 
 # ── Generator ─────────────────────────────────────────────────────────────────
@@ -142,16 +129,15 @@ class StandaloneCameraGenerator:
         spiral_y_offset: float = 0.0,
     ) -> dict:
         cx, cy, cz = center
-        fov = focal_length_to_fov(focal_length, sensor_size)
         duration = frames / fps
 
-        # Direction multiplier: clockwise = negative angle progression in standard math
+        # Direction: clockwise = negative angle progression
         dir_sign = -1.0 if direction == "clockwise" else 1.0
 
         keyframes = []
         base_indices = list(range(0, frames, max(1, keyframe_step)))
 
-        # When keyframe_step > 1, inject index 1 (start+1) and frames-2 (end-1)
+        # When keyframe_step > 1, inject index 1 and frames-2 for smoother ends
         extra = set()
         if keyframe_step > 1:
             if 1 not in base_indices and 1 < frames:
@@ -163,58 +149,51 @@ class StandaloneCameraGenerator:
 
         for i in frame_indices:
             t_norm = i / max(frames - 1, 1)   # 0 … 1
-            angle  = dir_sign * 2.0 * math.pi * t_norm
 
             if animation_type == "circular":
-                cam_x = cx + radius * math.cos(angle)
-                cam_y = cy
-                cam_z = cz + radius * math.sin(angle)
-                look_target = (cx, cy, cz) if target is None else target
+                angle  = dir_sign * 2.0 * math.pi * t_norm
+                cam_x  = cx + radius * math.sin(angle)
+                cam_y  = cy
+                cam_z  = cz + radius * math.cos(angle)
+                look_target = list(center) if target is None else list(target)
 
             else:  # spiral
-                angle *= spiral_loops
-                r   = start_radius + (end_radius - start_radius) * t_norm
-                h   = start_height + (end_height - start_height) * t_norm
-                cam_x = cx + r * math.cos(angle)
-                cam_y = cy + h
-                cam_z = cz + r * math.sin(angle)
+                angle  = dir_sign * 2.0 * math.pi * spiral_loops * t_norm
+                r      = start_radius + (end_radius - start_radius) * t_norm
+                h      = start_height + (end_height - start_height) * t_norm
+                cam_x  = cx + r * math.sin(angle)
+                cam_y  = cy + h
+                cam_z  = cz + r * math.cos(angle)
 
                 if spiral_follow_y:
-                    look_target = (cx, cam_y + spiral_y_offset, cz)
+                    look_target = [cx, cam_y + spiral_y_offset, cz]
                 elif target is not None:
-                    look_target = target
+                    look_target = list(target)
                 else:
-                    look_target = (cx, cy, cz)
+                    look_target = list(center)
 
-            # Auto-target override
+            # Auto-target: place look point at target_distance along the
+            # direction toward the nominal look_target
             if target_distance is not None:
-                fwd = _normalize((look_target[0] - cam_x,
-                                   look_target[1] - cam_y,
-                                   look_target[2] - cam_z))
-                look_target = (cam_x + fwd[0] * target_distance,
-                                cam_y + fwd[1] * target_distance,
-                                cam_z + fwd[2] * target_distance)
+                dx = look_target[0] - cam_x
+                dy = look_target[1] - cam_y
+                dz = look_target[2] - cam_z
+                d  = math.sqrt(dx*dx + dy*dy + dz*dz)
+                if d > 1e-12:
+                    look_target = [
+                        cam_x + dx/d * target_distance,
+                        cam_y + dy/d * target_distance,
+                        cam_z + dz/d * target_distance,
+                    ]
 
-            eye = (cam_x, cam_y, cam_z)
+            position = [cam_x, cam_y, cam_z]
 
+            # Optional Z-up → Y-up coordinate conversion
             if convert_coords:
-                # Z-up → Y-up: swap Y and Z, negate new Z
-                eye         = (eye[0],         eye[2],         -eye[1])
-                look_target = (look_target[0], look_target[2], -look_target[1])
+                position    = [position[0],    position[2],    -position[1]]
+                look_target = [look_target[0], look_target[2], -look_target[1]]
 
-            mat         = _look_at(eye, look_target)
-            rotation, _ = _mat4_to_rotation_translation(mat)
-
-            # _look_at uses OpenGL convention: camera looks down -Z.
-            # Lichtfeld uses +Z as forward.  Multiply by the 180-degree-Y quaternion
-            # (0, 1, 0, 0) to flip the forward axis without disturbing the up vector,
-            # so no roll is introduced.
-            # q * (0,1,0,0) in [x,y,z,w] = [-qz, qw, qx, -qy]
-            qx, qy, qz, qw = rotation
-            rotation = [-qz, qw, qx, -qy]
-
-            # Lichtfeld nightly negates the Y axis, so flip Y on position only.
-            translation = [eye[0], -eye[1], eye[2]]
+            qw, qx, qy, qz = _look_at_quaternion(position, look_target)
 
             time_s = round(i / fps, precision)
 
@@ -225,8 +204,8 @@ class StandaloneCameraGenerator:
                 "easing":          0,
                 "focal_length_mm": r(focal_length),
                 "time":            time_s,
-                "position":        [r(translation[0]), r(translation[1]), r(translation[2])],
-                "rotation":        [r(rotation[0]),    r(rotation[1]),    r(rotation[2]),    r(rotation[3])],
+                "position":        [r(position[0]), r(position[1]), r(position[2])],
+                "rotation":        [r(qw), r(qx), r(qy), r(qz)],
             })
 
         return {
