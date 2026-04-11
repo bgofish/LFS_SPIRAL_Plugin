@@ -23,65 +23,24 @@ def focal_length_to_fov(focal_length_mm: float, sensor_width_mm: float) -> float
 def _look_at_quat(eye: tuple, target: tuple) -> list[float]:
     """
     Return [qx, qy, qz, qw] for a camera at *eye* pointing toward *target*.
-    Decomposes into yaw (Y-axis) then pitch (X-axis) to keep axes clean —
-    avoids the diagonal-axis rotation that causes apparent roll in SuperSplat.
+    Builds a right-handed look-at basis (right, up, -fwd) and decomposes
+    directly to quaternion using row-major convention.
     """
     ex, ey, ez = eye
     tx, ty, tz = target
 
-    dx, dy, dz = tx - ex, ty - ey, tz - ez
+    fwd = _normalize((tx - ex, ty - ey, tz - ez))
+    up_hint = (0.0, 1.0, 0.0)
+    if abs(_dot(fwd, up_hint)) > 0.999:
+        up_hint = (0.0, 0.0, 1.0)
+    right = _normalize(_cross(fwd, up_hint))
+    up    = _normalize(_cross(right, fwd))
 
-    # Yaw: angle around world Y to face the XZ direction of the target
-    yaw = math.atan2(dx, dz)
-
-    # Pitch: angle down/up toward target
-    horiz_dist = math.sqrt(dx*dx + dz*dz)
-    pitch = math.atan2(-dy, horiz_dist)
-
-    # Build quaternion as yaw * pitch (Y-axis then X-axis rotation)
-    cy, sy = math.cos(yaw * 0.5),   math.sin(yaw * 0.5)
-    cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
-
-    # quat_yaw   = (0,  sy, 0, cy)
-    # quat_pitch = (sp,  0, 0, cp)
-    # combined   = quat_yaw * quat_pitch
-    qx =  cy * sp
-    qy =  sy * cp
-    qz = -sy * sp
-    qw =  cy * cp
-
-    return [qx, qy, qz, qw]
-
-
-def _normalize(v: tuple) -> tuple:
-    x, y, z = v
-    n = math.sqrt(x*x + y*y + z*z)
-    if n < 1e-12:
-        return (0.0, 0.0, 1.0)
-    return (x/n, y/n, z/n)
-
-
-def _cross(a: tuple, b: tuple) -> tuple:
-    ax, ay, az = a
-    bx, by, bz = b
-    return (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx)
-
-
-def _dot(a: tuple, b: tuple) -> float:
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
-
-
-def _mat4_to_rotation_translation(m: list[float]) -> tuple[list[float], list[float]]:
-    """
-    Decompose a column-major 4×4 matrix into
-    rotation (as [qx, qy, qz, qw]) and translation [tx, ty, tz].
-    """
-    # Column-major layout: m[0..2]=col0(right), m[4..6]=col1(up), m[8..10]=col2(-fwd)
-    # Transpose to row-major for quaternion decomposition:
-    r00, r01, r02 = m[0], m[4], m[8]
-    r10, r11, r12 = m[1], m[5], m[9]
-    r20, r21, r22 = m[2], m[6], m[10]
-    tx, ty, tz    = m[12], m[13], m[14]
+    # Build rotation matrix in row-major order:
+    # Row 0 = right, Row 1 = up, Row 2 = -fwd
+    r00, r01, r02 = right[0], right[1], right[2]
+    r10, r11, r12 = up[0],    up[1],    up[2]
+    r20, r21, r22 = -fwd[0],  -fwd[1],  -fwd[2]
 
     trace = r00 + r11 + r22
     if trace > 0:
@@ -109,12 +68,31 @@ def _mat4_to_rotation_translation(m: list[float]) -> tuple[list[float], list[flo
         qy = (r12 + r21) / s
         qz = 0.25 * s
 
-    # Normalise quaternion
-    qn = math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw)
-    if qn > 1e-12:
-        qx /= qn; qy /= qn; qz /= qn; qw /= qn
+    n = math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw)
+    if n > 1e-12:
+        qx /= n; qy /= n; qz /= n; qw /= n
 
-    return [qx, qy, qz, qw], [tx, ty, tz]
+    return [qx, qy, qz, qw]
+
+
+def _normalize(v: tuple) -> tuple:
+    x, y, z = v
+    n = math.sqrt(x*x + y*y + z*z)
+    if n < 1e-12:
+        return (0.0, 0.0, 1.0)
+    return (x/n, y/n, z/n)
+
+
+def _cross(a: tuple, b: tuple) -> tuple:
+    ax, ay, az = a
+    bx, by, bz = b
+    return (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx)
+
+
+def _dot(a: tuple, b: tuple) -> float:
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+
+
 
 
 # ── Generator ─────────────────────────────────────────────────────────────────
