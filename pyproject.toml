@@ -1,6 +1,6 @@
 [project]
 name = "camera_json_gen"
-version = "0.0.3"
+version = "0.0.4"
 description = "JSON Camera Generator — circular and spiral camera animations Nightly Build only."
 authors = [{name = "Brian Davis (bb6)"}]
 dependencies = []
