@@ -1,7 +1,7 @@
 """
 standalone_camera_json.py
 Pure-Python camera animation generator.
-Produces SuperSplat-compatible JSON from circular or spiral paths.
+Produces Lichtfeld-compatible JSON from circular or spiral paths.
 No Blender, no tkinter required.
 """
 
@@ -20,27 +20,61 @@ def focal_length_to_fov(focal_length_mm: float, sensor_width_mm: float) -> float
 
 # ── Look-at matrix ────────────────────────────────────────────────────────────
 
-def _look_at_quat(eye: tuple, target: tuple) -> list[float]:
+def _look_at(eye: tuple, target: tuple) -> list[float]:
     """
-    Return [qx, qy, qz, qw] for a camera at *eye* pointing toward *target*.
-    Builds a right-handed look-at basis (right, up, -fwd) and decomposes
-    directly to quaternion using row-major convention.
+    Return a 4x4 column-major look-at matrix (list of 16 floats) that places
+    a camera at *eye* pointing toward *target*.  Y-up world convention.
     """
     ex, ey, ez = eye
     tx, ty, tz = target
 
     fwd = _normalize((tx - ex, ty - ey, tz - ez))
+    # Degenerate guard: if forward is nearly straight up, tilt the up hint
     up_hint = (0.0, 1.0, 0.0)
     if abs(_dot(fwd, up_hint)) > 0.999:
         up_hint = (0.0, 0.0, 1.0)
-    right = _normalize(_cross(fwd, up_hint))
-    up    = _normalize(_cross(right, fwd))
 
-    # Build rotation matrix in row-major order:
-    # Row 0 = right, Row 1 = up, Row 2 = -fwd
-    r00, r01, r02 = right[0], right[1], right[2]
-    r10, r11, r12 = up[0],    up[1],    up[2]
-    r20, r21, r22 = -fwd[0],  -fwd[1],  -fwd[2]
+    right = _normalize(_cross(fwd, up_hint))
+    # Re-derive up strictly perpendicular to both fwd and right, eliminating roll
+    up = _normalize(_cross(right, fwd))
+
+    # Column-major: [right | up | -fwd | translation]
+    return [
+         right[0],  right[1],  right[2], 0.0,
+            up[0],     up[1],     up[2], 0.0,
+        -fwd[0],   -fwd[1],   -fwd[2],  0.0,
+            ex,        ey,        ez,    1.0,
+    ]
+
+
+def _normalize(v: tuple) -> tuple:
+    x, y, z = v
+    n = math.sqrt(x*x + y*y + z*z)
+    if n < 1e-12:
+        return (0.0, 0.0, 1.0)
+    return (x/n, y/n, z/n)
+
+
+def _cross(a: tuple, b: tuple) -> tuple:
+    ax, ay, az = a
+    bx, by, bz = b
+    return (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx)
+
+
+def _dot(a: tuple, b: tuple) -> float:
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
+
+
+def _mat4_to_rotation_translation(m: list[float]) -> tuple[list[float], list[float]]:
+    """
+    Decompose a column-major 4×4 matrix into
+    rotation (as [qx, qy, qz, qw]) and translation [tx, ty, tz].
+    """
+    # Extract rotation 3×3 (column-major: m[0..2] = col0, m[4..6] = col1, m[8..10] = col2)
+    r00, r10, r20 = m[0], m[1], m[2]
+    r01, r11, r21 = m[4], m[5], m[6]
+    r02, r12, r22 = m[8], m[9], m[10]
+    tx, ty, tz    = m[12], m[13], m[14]
 
     trace = r00 + r11 + r22
     if trace > 0:
@@ -68,31 +102,12 @@ def _look_at_quat(eye: tuple, target: tuple) -> list[float]:
         qy = (r12 + r21) / s
         qz = 0.25 * s
 
-    n = math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw)
-    if n > 1e-12:
-        qx /= n; qy /= n; qz /= n; qw /= n
+    # Normalise quaternion
+    qn = math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw)
+    if qn > 1e-12:
+        qx /= qn; qy /= qn; qz /= qn; qw /= qn
 
-    return [qx, qy, qz, qw]
-
-
-def _normalize(v: tuple) -> tuple:
-    x, y, z = v
-    n = math.sqrt(x*x + y*y + z*z)
-    if n < 1e-12:
-        return (0.0, 0.0, 1.0)
-    return (x/n, y/n, z/n)
-
-
-def _cross(a: tuple, b: tuple) -> tuple:
-    ax, ay, az = a
-    bx, by, bz = b
-    return (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx)
-
-
-def _dot(a: tuple, b: tuple) -> float:
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
-
-
+    return [qx, qy, qz, qw], [tx, ty, tz]
 
 
 # ── Generator ─────────────────────────────────────────────────────────────────
@@ -187,26 +202,16 @@ class StandaloneCameraGenerator:
                 eye         = (eye[0], eye[2], -eye[1])
                 look_target = (look_target[0], look_target[2], -look_target[1])
 
-            translation  = list(eye)
-            translation[1] = -translation[1]  # SuperSplat Y-flip on position
+            mat      = _look_at(eye, look_target)
+            rotation, _ = _mat4_to_rotation_translation(mat)
+            translation  = list(eye)   # world-space position passed through directly
 
-            # Compute rotation in SuperSplat's coordinate space (Y negated)
-            ss_eye    = (eye[0], -eye[1], eye[2])
-            ss_target = (look_target[0], -look_target[1], look_target[2])
-            rotation  = _look_at_quat(ss_eye, ss_target)
-
-            # Ensure quaternion continuity — if this quat is on the opposite hemisphere
-            # from the previous one, negate it so interpolation takes the short path
-            # rotation from _look_at_quat is [qx,qy,qz,qw]
-            # Lichtfeld expects [qw, qx, qy, qz] (Hamiltonian convention)
-            qx, qy, qz, qw = rotation[0], rotation[1], rotation[2], rotation[3]
-
-            # Ensure quaternion continuity (compare in w,x,y,z order)
-            if keyframes:
-                prev_r = keyframes[-1]["rotation"]  # [pw, px, py, pz]
-                dot = (qw*prev_r[0] + qx*prev_r[1] + qy*prev_r[2] + qz*prev_r[3])
-                if dot < 0:
-                    qw, qx, qy, qz = -qw, -qx, -qy, -qz
+            # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
+            # Fix: negate Y on position, and negate qx+qz on rotation (reflects across
+            # the XZ plane, correcting both the Y-axis flip and the forward direction).
+            translation[1] = -translation[1]
+            rotation[0]    = -rotation[0]   # qx
+            rotation[2]    = -rotation[2]   # qz
 
             time_s = round(i / fps, precision)
 
@@ -218,7 +223,7 @@ class StandaloneCameraGenerator:
                 "focal_length_mm": r(focal_length),
                 "time":            time_s,
                 "position":        [r(translation[0]), r(translation[1]), r(translation[2])],
-                "rotation":        [r(qw), r(qx), r(qy), r(qz)],
+                "rotation":        [r(rotation[0]),    r(rotation[1]),    r(rotation[2]),    r(rotation[3])],
             })
 
         return {
