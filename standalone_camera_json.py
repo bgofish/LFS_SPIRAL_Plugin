@@ -209,9 +209,13 @@ class StandaloneCameraGenerator:
             # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
             # Fix: negate Y on position, and negate qx+qz on rotation (reflects across
             # the XZ plane, correcting both the Y-axis flip and the forward direction).
-            translation[1] = -translation[1]
-            rotation[0]    = -rotation[0]   # qx
-            rotation[2]    = -rotation[2]   # qz
+            # When convert_coords is active the axis swap has already placed the camera
+            # in Y-up space, so only the quaternion forward-direction fix is needed —
+            # applying the position Y-flip on top would double-correct and cause roll.
+            if not convert_coords:
+                translation[1] = -translation[1]
+            rotation[0] = -rotation[0]   # qx
+            rotation[2] = -rotation[2]   # qz
 
             time_s = round(i / fps, precision)
 
