@@ -199,21 +199,20 @@ class StandaloneCameraGenerator:
 
             if convert_coords:
                 # Z-up → Y-up: swap Y and Z, negate new Z
-                eye         = (eye[0], eye[2], -eye[1])
-                look_target = (look_target[0], look_target[2], -look_target[1])
+                eye         = (eye[0],          eye[2],          -eye[1])
+                look_target = (look_target[0],  look_target[2],  -look_target[1])
+            else:
+                # Nightly build uses Y-down → flip Y on both eye and target so the
+                # look-at matrix is built entirely in Lichtfeld's coordinate space.
+                eye         = (eye[0],         -eye[1],          eye[2])
+                look_target = (look_target[0], -look_target[1],  look_target[2])
 
-            mat      = _look_at(eye, look_target)
+            mat         = _look_at(eye, look_target)
             rotation, _ = _mat4_to_rotation_translation(mat)
-            translation  = list(eye)   # world-space position passed through directly
+            translation = list(eye)   # world-space position in Lichtfeld space
 
-            # Nightly build is Y-up (stable was Y-down) and forward direction is flipped.
-            # Fix: negate Y on position, and negate qx+qz on rotation (reflects across
-            # the XZ plane, correcting both the Y-axis flip and the forward direction).
-            # When convert_coords is active the axis swap has already placed the camera
-            # in Y-up space, so only the quaternion forward-direction fix is needed —
-            # applying the position Y-flip on top would double-correct and cause roll.
-            if not convert_coords:
-                translation[1] = -translation[1]
+            # Forward direction is flipped relative to the look-at convention.
+            # Negate qx+qz to reflect across the XZ plane and correct it.
             rotation[0] = -rotation[0]   # qx
             rotation[2] = -rotation[2]   # qz
 
